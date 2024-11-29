@@ -1,5 +1,5 @@
 from hashlib import md5
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from langchain_core.utils import get_from_dict_or_env
 
@@ -400,6 +400,18 @@ class Neo4jGraph(GraphStore):
                     )
                 raise e
 
+    def _check_driver_state(self) -> None:
+        """
+        Check if the driver is available and ready for operations.
+
+        Raises:
+            RuntimeError: If the driver has been closed or is not initialized.
+        """
+        if not hasattr(self, "_driver"):
+            raise RuntimeError(
+                "Cannot perform operations - Neo4j connection has been closed"
+            )
+
     @property
     def get_schema(self) -> str:
         """Returns the schema of the Graph"""
@@ -423,7 +435,11 @@ class Neo4jGraph(GraphStore):
 
         Returns:
             List[Dict[str, Any]]: The list of dictionaries containing the query results.
+
+        Raises:
+            RuntimeError: If the connection has been closed.
         """
+        self._check_driver_state()
         from neo4j import Query
         from neo4j.exceptions import Neo4jError
 
@@ -467,7 +483,11 @@ class Neo4jGraph(GraphStore):
     def refresh_schema(self) -> None:
         """
         Refreshes the Neo4j graph schema information.
+
+        Raises:
+            RuntimeError: If the connection has been closed.
         """
+        self._check_driver_state()
         from neo4j.exceptions import ClientError, CypherTypeError
 
         node_properties = [
@@ -588,7 +608,11 @@ class Neo4jGraph(GraphStore):
         - baseEntityLabel (bool, optional): If True, each newly created node
         gets a secondary __Entity__ label, which is indexed and improves import
         speed and performance. Defaults to False.
+
+        Raises:
+            RuntimeError: If the connection has been closed.
         """
+        self._check_driver_state()
         if baseEntityLabel:  # Check if constraint already exists
             constraint_exists = any(
                 [
@@ -810,3 +834,84 @@ class Neo4jGraph(GraphStore):
         # Combine all parts of the Cypher query
         cypher_query = "\n".join([match_clause, with_clause, return_clause])
         return cypher_query
+
+    def close(self) -> None:
+        """
+        Explicitly close the Neo4j driver connection.
+
+        Delegates connection management to the Neo4j driver.
+        """
+        if hasattr(self, "_driver"):
+            self._driver.close()
+            # Remove the driver attribute to indicate closure
+            delattr(self, "_driver")
+
+    def __enter__(self) -> "Neo4jGraph":
+        """
+        Enter the runtime context for the Neo4j graph connection.
+
+        Enables use of the graph connection with the 'with' statement.
+        This method allows for automatic resource management and ensures
+        that the connection is properly handled.
+
+        Returns:
+            Neo4jGraph: The current graph connection instance
+
+        Example:
+            with Neo4jGraph(...) as graph:
+                graph.query(...)  # Connection automatically managed
+        """
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[Any],
+    ) -> None:
+        """
+        Exit the runtime context for the Neo4j graph connection.
+
+        This method is automatically called when exiting a 'with' statement.
+        It ensures that the database connection is closed, regardless of
+        whether an exception occurred during the context's execution.
+
+        Args:
+            exc_type: The type of exception that caused the context to exit
+                      (None if no exception occurred)
+            exc_val: The exception instance that caused the context to exit
+                     (None if no exception occurred)
+            exc_tb: The traceback for the exception (None if no exception occurred)
+
+        Note:
+            Any exception is re-raised after the connection is closed.
+        """
+        self.close()
+
+    def __del__(self) -> None:
+        """
+        Destructor for the Neo4j graph connection.
+
+        This method is called during garbage collection to ensure that
+        database resources are released if not explicitly closed.
+
+        Caution:
+            - Do not rely on this method for deterministic resource cleanup
+            - Always prefer explicit .close() or context manager
+
+        Best practices:
+            1. Use context manager:
+               with Neo4jGraph(...) as graph:
+                   ...
+            2. Explicitly close:
+               graph = Neo4jGraph(...)
+               try:
+                   ...
+               finally:
+                   graph.close()
+        """
+        try:
+            self.close()
+        except Exception:
+            # Suppress any exceptions during garbage collection
+            pass
