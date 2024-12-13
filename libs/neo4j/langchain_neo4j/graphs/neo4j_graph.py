@@ -191,7 +191,7 @@ def _format_schema(schema: Dict, is_enhanced: bool) -> str:
                     "DATE_TIME",
                     "LOCAL_DATE_TIME",
                 ]:
-                    if prop.get("min") is not None:
+                    if prop.get("min") and prop.get("max"):
                         example = f'Min: {prop["min"]}, Max: {prop["max"]}'
                     else:
                         example = (
@@ -215,7 +215,7 @@ def _format_schema(schema: Dict, is_enhanced: bool) -> str:
             formatted_rel_props.append(f"- **{rel_type}**")
             for prop in properties:
                 example = ""
-                if prop["type"] == "STRING":
+                if prop["type"] == "STRING" and prop.get("values"):
                     if prop.get("distinct_count", 11) > DISTINCT_VALUE_LIMIT:
                         example = (
                             f'Example: "{clean_string_values(prop["values"][0])}"'
@@ -238,8 +238,8 @@ def _format_schema(schema: Dict, is_enhanced: bool) -> str:
                     "DATE_TIME",
                     "LOCAL_DATE_TIME",
                 ]:
-                    if prop.get("min"):  # If we have min/max
-                        example = f'Min: {prop["min"]}, Max:  {prop["max"]}'
+                    if prop.get("min") and prop.get("max"):  # If we have min/max
+                        example = f'Min: {prop["min"]}, Max: {prop["max"]}'
                     else:  # return a single value
                         example = (
                             f'Example: "{prop["values"][0]}"' if prop["values"] else ""
@@ -252,7 +252,7 @@ def _format_schema(schema: Dict, is_enhanced: bool) -> str:
                         f'Min Size: {prop["min_size"]}, Max Size: {prop["max_size"]}'
                     )
                 formatted_rel_props.append(
-                    f"  - `{prop['property']}: {prop['type']}` {example}"
+                    f"  - `{prop['property']}`: {prop['type']} {example}"
                 )
     else:
         # Format node properties
