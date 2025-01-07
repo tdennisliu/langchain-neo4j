@@ -509,6 +509,7 @@ class Neo4jVector(VectorStore):
         relevance_score_fn: Optional[Callable[[float], float]] = None,
         index_type: IndexType = DEFAULT_INDEX_TYPE,
         graph: Optional[Neo4jGraph] = None,
+        embedding_dimension: Optional[int] = None,
     ) -> None:
         try:
             import neo4j
@@ -593,8 +594,11 @@ class Neo4jVector(VectorStore):
         self.search_type = search_type
         self._index_type = index_type
 
-        # Calculate embedding dimension
-        self.embedding_dimension = len(embedding.embed_query("foo"))
+        if embedding_dimension:
+            self.embedding_dimension = embedding_dimension
+        else:
+            # Calculate embedding dimension
+            self.embedding_dimension = len(embedding.embed_query("foo"))
 
         # Delete existing data if flagged
         if pre_delete_collection:
@@ -840,6 +844,7 @@ class Neo4jVector(VectorStore):
         ids: Optional[List[str]] = None,
         create_id_index: bool = True,
         search_type: SearchType = SearchType.VECTOR,
+        embedding_dimension: Optional[int] = None,
         **kwargs: Any,
     ) -> Neo4jVector:
         if ids is None:
@@ -851,6 +856,7 @@ class Neo4jVector(VectorStore):
         store = cls(
             embedding=embedding,
             search_type=search_type,
+            embedding_dimension=embedding_dimension,
             **kwargs,
         )
         # Check if the vector index already exists
