@@ -1024,7 +1024,9 @@ def test_select_relevance_score_fn_unsupported_strategy(
     )
 
 
-def test_embedding_dimension_inconsistent_raises_value_error(neo4j_vector_factory: Any):
+def test_embedding_dimension_inconsistent_raises_value_error(
+    neo4j_vector_factory: Any,
+) -> None:
     mock_embedding = MagicMock()
     mock_embedding.embed_query.return_value = [0.1] * 64
 

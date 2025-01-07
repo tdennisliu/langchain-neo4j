@@ -466,8 +466,8 @@ class Neo4jVector(VectorStore):
             (default: False). Useful for testing.
         effective_search_ratio: Controls the candidate pool size by multiplying $k
             to balance query accuracy and performance.
-        embedding_dimension: The dimension of the embeddings. If not provided, will query
-            the embedding model to calculate the dimension.
+        embedding_dimension: The dimension of the embeddings. If not provided,
+            will query the embedding model to calculate the dimension.
 
     Example:
         .. code-block:: python
@@ -1370,7 +1370,10 @@ class Neo4jVector(VectorStore):
         )
 
         if embedding_dimension:
-            embedding_dimension_from_existing, index_type = store.retrieve_existing_index()
+            (
+                embedding_dimension_from_existing,
+                index_type,
+            ) = store.retrieve_existing_index()
             if embedding_dimension_from_existing != embedding_dimension:
                 raise ValueError(
                     "The provided embedding function and vector index "
@@ -1452,7 +1455,10 @@ class Neo4jVector(VectorStore):
         )
 
         if embedding_dimension:
-            embedding_dimension_from_existing, index_type = store.retrieve_existing_index()
+            (
+                embedding_dimension_from_existing,
+                index_type,
+            ) = store.retrieve_existing_index()
             if embedding_dimension_from_existing != embedding_dimension:
                 raise ValueError(
                     "The provided embedding function and vector index "
